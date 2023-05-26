@@ -1,2 +1,2 @@
 # ringbuf
-Ring buffer implementation  by GO
+Ring buffer implementation by GO
