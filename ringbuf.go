@@ -1,37 +1,57 @@
 package ringbuf
 
-type RingBuf struct {
-	input  chan interface{}
-	output chan interface{}
-	buffer interface{}
+import "container/list"
+
+type RingBuf[T any] struct {
+	input   chan T
+	output  chan T
+	buffer  *list.List
+	bufSize int
 }
 
-func New() *RingBuf {
-	ch := &RingBuf{
-		input:  make(chan interface{}),
-		output: make(chan interface{}),
+func New[T any](size int) *RingBuf[T] {
+	ch := &RingBuf[T]{
+		input:   make(chan T),
+		output:  make(chan T),
+		buffer:  list.New(),
+		bufSize: size,
 	}
 	go ch.ringBuffer()
 	return ch
 }
 
-func (ch *RingBuf) in() chan<- interface{} {
+func (ch *RingBuf[T]) In() chan<- T {
 	return ch.input
 }
 
-func (ch *RingBuf) out() <-chan interface{} {
+func (ch *RingBuf[T]) Out() <-chan T {
 	return ch.output
 }
 
-func (ch *RingBuf) ringBuffer() {
-	var input, output chan interface{}
-	var next interface{}
+func (ch *RingBuf[T]) push(ele T) {
+	ch.buffer.PushBack(ele)
+	if ch.buffer.Len() > ch.bufSize {
+		ch.buffer.Remove(ch.buffer.Front())
+	}
+}
+
+func (ch *RingBuf[T]) pop() *list.Element {
+	ele := ch.buffer.Front()
+	if ele != nil {
+		ch.buffer.Remove(ele)
+	}
+	return ele
+}
+
+func (ch *RingBuf[T]) ringBuffer() {
+	var input, output chan T
+	var next *list.Element
 	input = ch.input
 
 	for input != nil || output != nil {
 		select {
-		case output <- next:
-			ch.buffer = nil
+		case output <- next.Value.(T):
+
 		default:
 			select {
 			case elem, open := <-input:
@@ -39,19 +59,19 @@ func (ch *RingBuf) ringBuffer() {
 					input = nil
 					break
 				}
-				ch.buffer = &elem
-			case output <- next:
-				ch.buffer = nil
+				ch.push(elem)
+			case output <- next.Value.(T):
+
 			}
 		}
 
-		if ch.buffer == nil {
+		if ch.buffer.Len() == 0 {
 			output = nil
 			continue
 		}
 
 		output = ch.output
-		next = ch.buffer
+		next = ch.pop()
 	}
 
 	close(ch.output)
