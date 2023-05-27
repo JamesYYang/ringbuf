@@ -1,21 +1,14 @@
-# ringbuf
-Ring buffer implementation by GO
+package main
 
-## Concept
+import (
+	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"time"
 
-Ringbuf implements ring buffer base on channel so never blocks the writer.
-
-If a value is written to ring buffer when its buffer is full then the oldest value in the buffer is discarded.
-
-## Install
-
-```
-go get github.com/JamesYYang/ringbuf
-```
-
-## Example
-
-```go
+	"github.com/JamesYYang/ringbuf"
+)
 
 type Message struct {
 	Name  string
@@ -43,6 +36,8 @@ func ReceiveMessage(output <-chan Message) {
 }
 
 func main() {
+	log.SetPrefix(fmt.Sprintf("[%d]: ", os.Getpid()))
+	log.SetFlags(log.Ldate | log.Lmicroseconds)
 
 	rb := ringbuf.New[Message](10)
 
@@ -54,4 +49,3 @@ func main() {
 	<-c
 	log.Fatal("program interrupted")
 }
-```

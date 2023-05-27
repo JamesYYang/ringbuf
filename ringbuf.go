@@ -1,6 +1,8 @@
 package ringbuf
 
-import "container/list"
+import (
+	"container/list"
+)
 
 type RingBuf[T any] struct {
 	input   chan T
@@ -45,13 +47,14 @@ func (ch *RingBuf[T]) pop() *list.Element {
 
 func (ch *RingBuf[T]) ringBuffer() {
 	var input, output chan T
-	var next *list.Element
+	var next T
 	input = ch.input
+	isSend := true
 
 	for input != nil || output != nil {
 		select {
-		case output <- next.Value.(T):
-
+		case output <- next:
+			isSend = true
 		default:
 			select {
 			case elem, open := <-input:
@@ -60,8 +63,8 @@ func (ch *RingBuf[T]) ringBuffer() {
 					break
 				}
 				ch.push(elem)
-			case output <- next.Value.(T):
-
+			case output <- next:
+				isSend = true
 			}
 		}
 
@@ -71,7 +74,13 @@ func (ch *RingBuf[T]) ringBuffer() {
 		}
 
 		output = ch.output
-		next = ch.pop()
+		if isSend {
+			isSend = false
+			ele := ch.pop()
+			if ele != nil {
+				next = ele.Value.(T)
+			}
+		}
 	}
 
 	close(ch.output)
