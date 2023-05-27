@@ -25,6 +25,7 @@ func SendMessage(input chan<- Message) {
 		log.Printf("sending message: %s\n", msg.Name)
 		time.Sleep(1 * time.Second)
 	}
+	close(input)
 
 }
 
