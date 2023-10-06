@@ -5,7 +5,10 @@ Ring buffer implementation by GO
 
 Ringbuf implements ring buffer base on channel so never blocks the writer.
 
-If a value is written to ring buffer when its buffer is full then the oldest value in the buffer is discarded.
+It provider three types ring buffer:
+- Normal[`ringbuf.New`]: ring buffer with fixed size, and when its buffer is full then the oldest value in the buffer is discarded.
+- Infinity[`ringbuf.NewInfinity`]: ring buffer with infinity size, and the new value is always can be added.
+- Overflow[`ringbuf.NewOverflow`]: ring buffer with fixed size, and when its buffer is full then the new value is discarded.
 
 ## Install
 

@@ -16,7 +16,7 @@ type Message struct {
 }
 
 func SendMessage(input chan<- Message) {
-	for i := 0; i < 50; i++ {
+	for i := 0; ; i++ {
 		msg := Message{
 			Name:  fmt.Sprintf("Message %d", i),
 			Value: fmt.Sprintf("Value %d", i),
@@ -25,7 +25,6 @@ func SendMessage(input chan<- Message) {
 		log.Printf("sending message: %s\n", msg.Name)
 		time.Sleep(1 * time.Second)
 	}
-	close(input)
 
 }
 
@@ -40,13 +39,14 @@ func main() {
 	log.SetPrefix(fmt.Sprintf("[%d]: ", os.Getpid()))
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 
-	rb := ringbuf.New[Message](10)
+	rb := ringbuf.NewOverflow[Message](10)
 
 	go SendMessage(rb.In())
 	go ReceiveMessage(rb.Out())
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill)
+
 	<-c
 	log.Fatal("program interrupted")
 }
